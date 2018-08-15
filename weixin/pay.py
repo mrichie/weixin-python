@@ -82,8 +82,9 @@ class WeixinPay(object):
         return raw
 
     def _fetch(self, url, data, use_cert=False):
-        data.setdefault("appid", self.app_id)
-        data.setdefault("mch_id", self.mch_id)
+        if 'mch_appid' not in data:
+            data.setdefault("appid", self.app_id)
+            data.setdefault("mch_id", self.mch_id)
         data.setdefault("nonce_str", self.nonce_str)
         data.setdefault("sign", self.sign(data))
 
@@ -176,7 +177,32 @@ class WeixinPay(object):
         data.setdefault("out_trade_no", out_trade_no)
 
         return self._fetch(url, data)
-
+    
+    def transfer(self, **data):
+        """
+        企业付款
+        partner_trade_no、openid、check_name、amount、desc为必填参数
+        appid、mchid、nonce_str不需要填入
+        """
+        if not self.key or not self.cert:
+            raise WeixinError("企业付款接口需要双向证书")
+        url = "https://api.mch.weixin.qq.com/mmpaymkttransfers/promotion/transfers"
+        if "partner_trade_no" not in data:
+            raise WeixinPayError("企业付款接口中，缺少必填参数 partner_trade_no");
+        if "openid" not in data:
+            raise WeixinPayError("企业付款接口中，缺少必填参数 openid");
+        if "check_name" not in data:
+            raise WeixinPayError("企业付款接口中，缺少必填参数 check_name");
+        if "amount" not in data:
+            raise WeixinPayError("企业付款接口中，缺少必填参数 amount");
+        if "desc" not in data:
+            raise WeixinPayError("企业付款接口中，缺少必填参数 desc");
+        if "spbill_create_ip" not in data:
+            data.setdefault("spbill_create_ip", self.remote_addr)
+        data.setdefault("mch_appid", self.app_id)
+        data.setdefault("mchid", self.mch_id)
+        return self._fetch(url, data, True)
+    
     def refund(self, **data):
         """
         申请退款
